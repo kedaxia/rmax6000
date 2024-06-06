@@ -58,10 +58,10 @@ jobs:
         cd openwrt
         # Uncomment a feed source
         sed -i 's/^#\(.*helloworld\)/\1/' feeds.conf.default
-        # Add new feed sources
-        echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
-        echo 'src-git alist https://github.com/sbwml/luci-app-alist' >> feeds.conf.default
-        echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
+        # Add new feed sources if not already present
+        grep -q "src-git passwall" feeds.conf.default || echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
+        grep -q "src-git alist" feeds.conf.default || echo 'src-git alist https://github.com/sbwml/luci-app-alist' >> feeds.conf.default
+        grep -q "src-git openclash" feeds.conf.default || echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
 
     - name: Load-feeds.conf.default & DIY_P1_SH
       run: |
@@ -112,45 +112,4 @@ jobs:
         echo "FILE_DATE=$(date +"%Y.%m.%d-%H%M")" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
         
-    - name: View disk usage
-      if: (!cancelled())
-      run: df -hT
-
-    - name: Organize files and rename
-      id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
-      run: | 
-        cd openwrt/bin/targets/*/*
-        rm -rf packages
-        sudo -E apt-get -qq install rename
-        rename 's/.*${{ env.TARGET_NAME }}/${{ env.FILE_DATE }}-${{ env.OPENWRT_NAME }}/' *
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
-      
-    - name: Upload firmware to github
-      uses: actions/upload-artifact@main
-      if: steps.organize.outputs.status == 'success' && !cancelled()
-      with:
-        name: ${{ env.FILE_DATE }}-${{ env.OPENWRT_NAME }}-${{ env.DEVICE_NAME }}
-        path: ${{ env.FIRMWARE }}
-
-    - name: Generate release tags
-      id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
-      run: |
-        echo "release_tag=${{ env.FILE_DATE }}-${{ env.OPENWRT_NAME }}-${{ env.DEVICE_NAME }}" >> $GITHUB_OUTPUT
-        touch release.txt
-        echo "Sincere thanks to all the big guys who have selflessly dedicated to openwrt" >> release.txt
-        echo "📥 Firmware download" >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
-        
-    - name: Publish to release
-      uses: softprops/action-gh-release@v1
-      if: steps.tag.outputs.status == 'success' && !cancelled()
-      env:
-        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      with:
-        files: ${{ env.FIRMWARE }}/*
-        name: ${{ env.FILE_DATE }}-${{ env.OPENWRT_NAME }}-${{ env.DEVICE_NAME }}
-        tag_name: ${{ steps.tag.outputs.release_tag }}
-        body_path: release
+    - name: View
