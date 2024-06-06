@@ -53,9 +53,15 @@ jobs:
         git pull origin $REPO_BRANCH
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Add luci-app-alist feed
+    - name: Update feeds.conf.default
       run: |
-        echo "src-git alist https://github.com/sbwml/luci-app-alist" >> openwrt/feeds.conf.default
+        cd openwrt
+        # Uncomment a feed source
+        sed -i 's/^#\(.*helloworld\)/\1/' feeds.conf.default
+        # Add new feed sources
+        echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >> feeds.conf.default
+        echo 'src-git alist https://github.com/sbwml/luci-app-alist' >> feeds.conf.default
+        echo 'src-git openclash https://github.com/vernesong/OpenClash' >> feeds.conf.default
 
     - name: Load-feeds.conf.default & DIY_P1_SH
       run: |
@@ -147,4 +153,4 @@ jobs:
         files: ${{ env.FIRMWARE }}/*
         name: ${{ env.FILE_DATE }}-${{ env.OPENWRT_NAME }}-${{ env.DEVICE_NAME }}
         tag_name: ${{ steps.tag.outputs.release_tag }}
-        body_path: release.txt
+        body_path: release
